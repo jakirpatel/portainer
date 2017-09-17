@@ -204,14 +204,19 @@ function ($q, $scope, $stateParams, $state, $location, $timeout, $anchorScroll, 
     config.TaskTemplate.Placement.Constraints = ServiceHelper.translateKeyValueToPlacementConstraints(service.ServiceConstraints);
     config.TaskTemplate.Placement.Preferences = ServiceHelper.translateKeyValueToPlacementPreferences(service.ServicePreferences);
 
+    // Round memory values to 0.125 and convert MB to B
+    var memoryLimit = (Math.round(service.LimitMemoryBytes * 8) / 8).toFixed(3);
+    memoryLimit *= 1024 * 1024;
+    var memoryReservation = (Math.round(service.ReservationMemoryBytes * 8) / 8).toFixed(3);
+    memoryReservation *= 1024 * 1024;
     config.TaskTemplate.Resources = {
       Limits: {
-        NanoCPUs: service.LimitNanoCPUs,
-        MemoryBytes: service.LimitMemoryBytes
+        NanoCPUs: service.LimitNanoCPUs * 1000000000,
+        MemoryBytes: memoryLimit
       },
       Reservations: {
-        NanoCPUs: service.ReservationNanoCPUs,
-        MemoryBytes: service.ReservationMemoryBytes
+        NanoCPUs: service.ReservationNanoCPUs * 1000000000,
+        MemoryBytes: memoryReservation
       }
     };
 
@@ -244,7 +249,11 @@ function ($q, $scope, $stateParams, $state, $location, $timeout, $anchorScroll, 
 
     Service.update({ id: service.Id, version: service.Version }, config, function (data) {
       $('#loadingViewSpinner').hide();
-      Notifications.success('Service successfully updated', 'Service updated');
+      if (data.message && data.message.match(/^rpc error:/)) {
+        Notifications.error(data.message, 'Error');
+      } else {
+        Notifications.success('Service successfully updated', 'Service updated');
+      }
       $scope.cancelChanges({});
       initView();
     }, function (e) {
@@ -288,6 +297,13 @@ function ($q, $scope, $stateParams, $state, $location, $timeout, $anchorScroll, 
     service.ServicePreferences = ServiceHelper.translatePreferencesToKeyValue(service.Preferences);
   }
 
+  function transformResources(service) {
+    service.LimitNanoCPUs = service.LimitNanoCPUs / 1000000000 || 0;
+    service.ReservationNanoCPUs = service.ReservationNanoCPUs / 1000000000 || 0;
+    service.LimitMemoryBytes = service.LimitMemoryBytes / 1024 / 1024 || 0;
+    service.ReservationMemoryBytes = service.ReservationMemoryBytes / 1024 / 1024 || 0;
+  }
+
   function initView() {
     $('#loadingViewSpinner').show();
     var apiVersion = $scope.applicationState.endpoint.apiVersion;
@@ -299,6 +315,7 @@ function ($q, $scope, $stateParams, $state, $location, $timeout, $anchorScroll, 
         $scope.lastVersion = service.Version;
       }
 
+      transformResources(service);
       translateServiceArrays(service);
       $scope.service = service;
       originalService = angular.copy(service);
