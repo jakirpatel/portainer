@@ -289,6 +289,10 @@ ul.sidebar .sidebar-title {
   height: auto;
 }
 
+ul.sidebar .sidebar-list a {
+  font-size: 12px;
+}
+
 ul.sidebar .sidebar-list a.active {
   color: #fff;
   text-indent: 22px;
@@ -306,7 +310,7 @@ ul.sidebar .sidebar-list a.active {
 
 ul.sidebar .sidebar-list .sidebar-sublist a {
   text-indent: 35px;
-  font-size: 12px;
+  font-size: 10px;
   color: #b2bfdc;
   line-height: 40px;
 }
